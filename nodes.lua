@@ -4,7 +4,7 @@ minetest.register_node("cube_nodes:node_A", {
 		tiles = {"node_A.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -14,7 +14,7 @@ minetest.register_node("cube_nodes:node_B", {
 		tiles = {"node_B.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -24,7 +24,7 @@ minetest.register_node("cube_nodes:node_C", {
 		tiles = {"node_C.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -34,7 +34,7 @@ minetest.register_node("cube_nodes:node_D", {
 		tiles = {"node_D.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -44,7 +44,7 @@ minetest.register_node("cube_nodes:node_E", {
 		tiles = {"node_E.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -54,7 +54,7 @@ minetest.register_node("cube_nodes:node_F", {
 		tiles = {"node_F.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -64,7 +64,7 @@ minetest.register_node("cube_nodes:node_G", {
 		tiles = {"node_G.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -74,7 +74,7 @@ minetest.register_node("cube_nodes:node_H", {
 		tiles = {"node_H.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -84,7 +84,7 @@ minetest.register_node("cube_nodes:node_I", {
 		tiles = {"node_I.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -94,7 +94,7 @@ minetest.register_node("cube_nodes:node_J", {
 		tiles = {"node_J.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -104,7 +104,7 @@ minetest.register_node("cube_nodes:node_K", {
 		tiles = {"node_K.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -114,7 +114,7 @@ minetest.register_node("cube_nodes:node_L", {
 		tiles = {"node_L.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -124,7 +124,7 @@ minetest.register_node("cube_nodes:node_M", {
 		tiles = {"node_M.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -134,7 +134,7 @@ minetest.register_node("cube_nodes:node_N", {
 		tiles = {"node_N.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -144,7 +144,7 @@ minetest.register_node("cube_nodes:node_O", {
 		tiles = {"node_O.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -154,7 +154,7 @@ minetest.register_node("cube_nodes:node_P", {
 		tiles = {"node_P.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -164,7 +164,7 @@ minetest.register_node("cube_nodes:node_Q", {
 		tiles = {"node_Q.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -174,7 +174,7 @@ minetest.register_node("cube_nodes:node_R", {
 		tiles = {"node_R.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -184,7 +184,7 @@ minetest.register_node("cube_nodes:node_S", {
 		tiles = {"node_S.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -194,7 +194,7 @@ minetest.register_node("cube_nodes:node_T", {
 		tiles = {"node_T.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -204,7 +204,7 @@ minetest.register_node("cube_nodes:node_U", {
 		tiles = {"node_U.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -214,7 +214,7 @@ minetest.register_node("cube_nodes:node_V", {
 		tiles = {"node_V.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -224,7 +224,7 @@ minetest.register_node("cube_nodes:node_W", {
 		tiles = {"node_W.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -234,7 +234,7 @@ minetest.register_node("cube_nodes:node_X", {
 		tiles = {"node_X.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -244,7 +244,7 @@ minetest.register_node("cube_nodes:node_Y", {
 		tiles = {"node_Y.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -254,7 +254,7 @@ minetest.register_node("cube_nodes:node_Z", {
 		tiles = {"node_Z.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -264,7 +264,7 @@ minetest.register_node("cube_nodes:node_0", {
 		tiles = {"node_O.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -274,7 +274,7 @@ minetest.register_node("cube_nodes:node_1", {
 		tiles = {"node_1.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -284,7 +284,7 @@ minetest.register_node("cube_nodes:node_2", {
 		tiles = {"node_2.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -294,7 +294,7 @@ minetest.register_node("cube_nodes:node_3", {
 		tiles = {"node_3.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -304,7 +304,7 @@ minetest.register_node("cube_nodes:node_4", {
 		tiles = {"node_4.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -314,7 +314,7 @@ minetest.register_node("cube_nodes:node_5", {
 		tiles = {"node_5.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -324,7 +324,7 @@ minetest.register_node("cube_nodes:node_6", {
 		tiles = {"node_6.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -334,7 +334,7 @@ minetest.register_node("cube_nodes:node_7", {
 		tiles = {"node_7.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -344,7 +344,7 @@ minetest.register_node("cube_nodes:node_8", {
 		tiles = {"node_8.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -354,7 +354,7 @@ minetest.register_node("cube_nodes:node_9", {
 		tiles = {"node_9.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -364,7 +364,7 @@ minetest.register_node("cube_nodes:node_line1", {
 		tiles = {"node_line1.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -374,7 +374,7 @@ minetest.register_node("cube_nodes:node_line2", {
 		tiles = {"node_line2.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -385,7 +385,7 @@ minetest.register_node("cube_nodes:node_star", {
 		tiles = {"node_star.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -396,7 +396,7 @@ minetest.register_node("cube_nodes:node_plus", {
 		tiles = {"node_plus.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -407,7 +407,7 @@ minetest.register_node("cube_nodes:node_minus", {
 		tiles = {"node_minus.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -417,7 +417,7 @@ minetest.register_node("cube_nodes:node_exclamation_mark", {
 		tiles = {"node_exclamation_mark.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -427,7 +427,7 @@ minetest.register_node("cube_nodes:node_question_mark", {
 		tiles = {"node_question_mark.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -437,7 +437,7 @@ minetest.register_node("cube_nodes:node_stop", {
 		tiles = {"node_stop.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -447,7 +447,7 @@ minetest.register_node("cube_nodes:node_bracket1", {
 		tiles = {"node_bracket1.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -457,7 +457,7 @@ minetest.register_node("cube_nodes:node_bracket2", {
 		tiles = {"node_bracket2.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -467,7 +467,7 @@ minetest.register_node("cube_nodes:node_comma", {
 		tiles = {"node_comma.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -477,7 +477,7 @@ minetest.register_node("cube_nodes:node_dash", {
 		tiles = {"node_dash.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -487,7 +487,7 @@ minetest.register_node("cube_nodes:node_procent", {
 		tiles = {"node_procent.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -497,7 +497,7 @@ minetest.register_node("cube_nodes:node_multiplication_mark", {
 		tiles = {"node_multiplication_mark.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -507,7 +507,7 @@ minetest.register_node("cube_nodes:node_division_mark", {
 		tiles = {"node_division_mark.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -517,7 +517,7 @@ minetest.register_node("cube_nodes:node_equality_mark", {
 		tiles = {"node_equality_mark.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -527,7 +527,7 @@ minetest.register_node("cube_nodes:node_smile", {
 		tiles = {"node_smile.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -537,7 +537,7 @@ minetest.register_node("cube_nodes:node_sad", {
 		tiles = {"node_sad.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -547,7 +547,7 @@ minetest.register_node("cube_nodes:node_evil", {
 		tiles = {"node_evil.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
@@ -557,7 +557,7 @@ minetest.register_node("cube_nodes:node_normal", {
 		tiles = {"node_normal.png"},
 		paramtype = "light",
 		sunlight_propagates = true,
-		light_source = 15,
+		light_source = minetest.LIGHT_MAX,
 		groups = {snappy = 2, cracky = 3, oddly_breakable_by_hand = 3},
 		sounds = default.node_sound_stone_defaults(),
 })
