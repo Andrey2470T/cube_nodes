@@ -36,27 +36,38 @@ cube_nodes.symbols = {
 	"X",
 	"Y",
 	"Z",
+	"ampersand",
 	"asterisk",
 	"bracket_left",
 	"bracket_right",
 	"comma",
+	"corner_bracket_left",
+	"corner_bracket_right",
 	"dash",
 	"division_mark",
+	"dollar",
 	"dot",
+	"email",
 	"empty",
 	"equality_mark",
 	"evil",
 	"exclamation_mark",
+	"figure_bracket_left",
+	"figure_bracket_right",
+	"grid",
 	"minus",
 	"multiplication_mark",
 	"normal",
 	"plus",
 	"procent",
 	"question_mark",
+	"round_bracket_left",
+	"round_bracket_right",
 	"sad",
 	"slash_left",
 	"slash_right",
-	"smile"
+	"smile",
+	"tilde"
 }
 
 cube_nodes.fonts = {
@@ -85,6 +96,8 @@ cube_nodes.skip_nodes_count = 13
 cube_nodes.skip_nodes = {
 	italic = {
 		asterisk=true,
+		corner_bracket_left=true,
+		corner_bracket_right=true,
 		dash=true,
 		empty=true,
 		equality_mark=true,
@@ -96,7 +109,8 @@ cube_nodes.skip_nodes = {
 		sad=true,
 		slash_left=true,
 		slash_right=true,
-		smile=true
+		smile=true,
+		tilde=true
 	}
 }
 
