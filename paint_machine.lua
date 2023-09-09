@@ -53,11 +53,13 @@ function cube_nodes.form_paint_machine_output_list(node_list_item, dye_list_item
 	local f_type = font_type == "normal" and "" or font_type .. "_"
 	local color_s, color_e = dye_item_name:find("dye:")
 	local color = dye_item_name:sub(color_e+1)
+	
+	if color == "white" then return list end
 
-	if color == "darkgreen" then
-		color = "dark_green"
-	elseif color == "darkgrey" then
-		color = "dark_grey"
+	if color == "dark_green" then
+		color = "darkgreen"
+	elseif color == "dark_grey" then
+		color = "darkgrey"
 	end
 
 	for _, sym in ipairs(cube_nodes.symbols) do
@@ -74,7 +76,7 @@ function cube_nodes.form_paint_machine_output_list(node_list_item, dye_list_item
 	return list
 end
 
-function cube_nodes.on_inv_action_in_paint_machine(pos, action, listname)
+function cube_nodes.on_inv_action_in_paint_machine(pos, action, listname, taken_count)
 	if not pos then return end
 
 	local dd_value = minetest.get_meta(pos):get_string("context_dd_value")
@@ -82,8 +84,12 @@ function cube_nodes.on_inv_action_in_paint_machine(pos, action, listname)
 	local inv = minetest.get_inventory({type="node", pos=pos})
 
 	if action == "take" and listname == pm_output_list_name then
-		inv:set_stack(pm_node_list_name, 1, ItemStack(""))
-		inv:set_stack(pm_dye_list_name, 1, ItemStack(""))
+		local pm_nodes_stack = inv:get_stack(pm_node_list_name, 1)
+		local pm_dyes_stack = inv:get_stack(pm_dye_list_name, 1)
+		pm_nodes_stack:take_item(taken_count)
+		pm_dyes_stack:take_item(taken_count)
+		inv:set_stack(pm_node_list_name, 1, pm_nodes_stack)
+		inv:set_stack(pm_dye_list_name, 1, pm_dyes_stack)
 	end
 
 	-- Waiting for when the given list gets updated and only after that get new itemstacks
@@ -144,7 +150,7 @@ minetest.register_node("cube_nodes:paint_machine", {
 		cube_nodes.on_inv_action_in_paint_machine(pos, "put", listname)
 	end,
 	on_metadata_inventory_take = function(pos, listname, index, stack, player)
-		cube_nodes.on_inv_action_in_paint_machine(pos, "take", listname)
+		cube_nodes.on_inv_action_in_paint_machine(pos, "take", listname, stack:get_count())
 	end,
 	on_receive_fields = function(pos, formname, fields, sender)
 		if fields.pm_font_dd then
