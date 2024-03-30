@@ -8,21 +8,21 @@ local pm_font_dd = "pm_font_dd"
 function cube_nodes.get_paint_machine_fs(pos, nodes_count)
 	local list_w = math.ceil(nodes_count / 4)
 
-	local steps_c
+	local scroll_factor = 0.1
+	local visible_slots_w = 8
+	local visible_container_w = visible_slots_w + visible_slots_w * 0.3
+	local container_w = math.max(visible_container_w, list_w + 0.3 * list_w)
 
-	if list_w <= 8 then
-		steps_c = 6
-	else
-		steps_c = list_w
-	end
+	local scroll_dist = container_w - visible_container_w
+	local thumb_size = (visible_container_w / container_w) * scroll_dist
 
-	steps_c = (steps_c - 6) / 0.1
+
 	local fs = table.concat({
 		"formspec_version[4]size[11,13]",
-		("scrollbaroptions[min=0;max=%d;smallstep=%d;largestep=%s]"):format(steps_c, steps_c/7, steps_c/7),
+		("scrollbaroptions[min=0;max=%f;thumbsize=%f]"):format(scroll_dist/scroll_factor, thumb_size/scroll_factor),
 		"scrollbar[0.5,5.5;10,0.2;horizontal;pm_scrlbar;]",
 		"scroll_container[0.5,0.5;10,5;pm_scrlbar;horizontal]",
-		("list[nodemeta:%d,%d,%d;%s;0,0;%d,4;]"):format(pos.x, pos.y, pos.z, pm_output_list_name, list_w),
+			("list[nodemeta:%d,%d,%d;%s;0,0;%d,4;]"):format(pos.x, pos.y, pos.z, pm_output_list_name, list_w),
 		"scroll_container_end[]",
 		"list[current_player;main;0.5,7.5;8,4;]",
 		("label[2,6;Node:]list[nodemeta:%d,%d,%d;%s;2,6.25;1,1;]"):format(pos.x, pos.y, pos.z, pm_node_list_name),
@@ -53,7 +53,7 @@ function cube_nodes.form_paint_machine_output_list(node_list_item, dye_list_item
 	local f_type = font_type == "normal" and "" or font_type .. "_"
 	local color_s, color_e = dye_item_name:find("dye:")
 	local color = dye_item_name:sub(color_e+1)
-	
+
 	if color == "white" then return list end
 
 	if color == "dark_green" then
