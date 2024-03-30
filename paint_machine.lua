@@ -28,7 +28,7 @@ function cube_nodes.get_paint_machine_fs(pos, nodes_count)
 		("label[2,6;Node:]list[nodemeta:%d,%d,%d;%s;2,6.25;1,1;]"):format(pos.x, pos.y, pos.z, pm_node_list_name),
 		("label[5,6;Dye:]list[nodemeta:%d,%d,%d;%s;5,6.25;1,1;]"):format(pos.x, pos.y, pos.z, pm_dye_list_name),
 		"image[5,6.25;1,1;dye_icon.png]",
-		("label[7,6;Font:]dropdown[7,6.25;1.5;%s;Normal,Italic;1;]"):format(pm_font_dd)
+		("label[7,6;Font:]dropdown[7,6.25;1.5;%s;Normal,Italic,Bold;1;]"):format(pm_font_dd)
 	})
 
 	return fs

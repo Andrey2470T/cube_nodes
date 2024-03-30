@@ -72,7 +72,8 @@ cube_nodes.symbols = {
 
 cube_nodes.fonts = {
 	"normal",
-	"italic"
+	"italic",
+	"bold"
 }
 
 cube_nodes.colors = {
@@ -95,6 +96,24 @@ cube_nodes.colors = {
 cube_nodes.skip_nodes_count = 13
 cube_nodes.skip_nodes = {
 	italic = {
+		asterisk=true,
+		corner_bracket_left=true,
+		corner_bracket_right=true,
+		dash=true,
+		empty=true,
+		equality_mark=true,
+		evil=true,
+		minus=true,
+		normal=true,
+		plus=true,
+		procent=true,
+		sad=true,
+		slash_left=true,
+		slash_right=true,
+		smile=true,
+		tilde=true
+	},
+	bold = {
 		asterisk=true,
 		corner_bracket_left=true,
 		corner_bracket_right=true,
