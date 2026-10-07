@@ -6,23 +6,38 @@ local pm_dye_list_name = "pm_dye_list"
 local pm_font_dd = "pm_font_dd"
 
 function cube_nodes.get_paint_machine_fs(pos, nodes_count)
-	local list_w = math.ceil(nodes_count / 4)
+	local list_w = 8
+	local list_h = math.ceil(nodes_count / list_w)
 
+	-- A slot is 1.0 units in size and the spacing between slots is 0.25 units,
+	-- so every slot takes 1.25 units of the container
+	local slot_step = 1.25
+	local visible_slots_h = 4
 	local scroll_factor = 0.1
-	local visible_slots_w = 8
-	local visible_container_w = visible_slots_w + visible_slots_w * 0.3
-	local container_w = math.max(visible_container_w, list_w + 0.3 * list_w)
 
-	local scroll_dist = container_w - visible_container_w
-	local thumb_size = (visible_container_w / container_w) * scroll_dist
+	local container_w = slot_step * list_w - 0.25
+	local container_h = slot_step * visible_slots_h - 0.25
+	local content_h = slot_step * list_h - 0.25
 
+	local scroll_dist = math.max(content_h - container_h, 0)
+	local scroll_max = math.floor(scroll_dist / scroll_factor + 0.5)
+	-- The thumb takes the same fraction of the scrollbar as the visible
+	-- window takes of the whole content
+	local thumb_size = math.max(1, math.floor(scroll_max * container_h / content_h + 0.5))
 
 	local fs = table.concat({
 		"formspec_version[4]size[11,13]",
-		("scrollbaroptions[min=0;max=%f;thumbsize=%f]"):format(scroll_dist/scroll_factor, thumb_size/scroll_factor),
-		"scrollbar[0.5,5.5;10,0.2;horizontal;pm_scrlbar;]",
-		"scroll_container[0.5,0.5;10,5;pm_scrlbar;horizontal]",
-			("list[nodemeta:%d,%d,%d;%s;0,0;%d,4;]"):format(pos.x, pos.y, pos.z, pm_output_list_name, list_w),
+		-- smallstep/largestep = one slot row / one visible page
+		("scrollbaroptions[min=0;max=%d;thumbsize=%d;smallstep=%d;largestep=%d;arrows=hide]"):format(
+			scroll_max, thumb_size,
+			math.floor(slot_step / scroll_factor + 0.5),
+			math.floor(container_h / scroll_factor + 0.5)),
+		-- The scrollbar must not overlap the scroll_container, otherwise the
+		-- container intercepts mouse clicks aimed at the scrollbar
+		("scrollbar[10.4,0.5;0.3,%g;vertical;pm_scrlbar;]"):format(container_h),
+		("scroll_container[0.5,0.5;%g,%g;pm_scrlbar;vertical;%g]"):format(container_w, container_h, scroll_factor),
+			-- The full list must be drawn inside the container, the container clips it
+			("list[nodemeta:%d,%d,%d;%s;0,0;%d,%d;]"):format(pos.x, pos.y, pos.z, pm_output_list_name, list_w, list_h),
 		"scroll_container_end[]",
 		"list[current_player;main;0.5,7.5;8,4;]",
 		("label[2,6;Node:]list[nodemeta:%d,%d,%d;%s;2,6.25;1,1;]"):format(pos.x, pos.y, pos.z, pm_node_list_name),
@@ -79,9 +94,9 @@ end
 function cube_nodes.on_inv_action_in_paint_machine(pos, action, listname, taken_count)
 	if not pos then return end
 
-	local dd_value = minetest.get_meta(pos):get_string("context_dd_value")
+	local dd_value = core.get_meta(pos):get_string("context_dd_value")
 
-	local inv = minetest.get_inventory({type="node", pos=pos})
+	local inv = core.get_inventory({type="node", pos=pos})
 
 	if action == "take" and listname == pm_output_list_name then
 		local pm_nodes_stack = inv:get_stack(pm_node_list_name, 1)
@@ -93,7 +108,7 @@ function cube_nodes.on_inv_action_in_paint_machine(pos, action, listname, taken_
 	end
 
 	-- Waiting for when the given list gets updated and only after that get new itemstacks
-	minetest.after(0.01, function()
+	core.after(0.01, function()
 		local node_stack = inv:get_stack(pm_node_list_name, 1)
 		local dye_stack = inv:get_stack(pm_dye_list_name, 1)
 
@@ -102,7 +117,7 @@ function cube_nodes.on_inv_action_in_paint_machine(pos, action, listname, taken_
 	end)
 end
 
-minetest.register_node("cube_nodes:paint_machine", {
+core.register_node("cube_nodes:paint_machine", {
 	description = "Painting Machine",
 	visual_scale = 0.5,
 	drawtype = "mesh",
@@ -121,18 +136,24 @@ minetest.register_node("cube_nodes:paint_machine", {
 		fixed = {-0.5, -0.5, -0.5, 0.5, 1.5, 0.5}
 	},
 	on_construct = function(pos)
-		local meta = minetest.get_meta(pos)
+		local meta = core.get_meta(pos)
 
 		meta:set_string("formspec", cube_nodes.get_paint_machine_fs(pos, cube_nodes.nodes_count))
 		meta:set_string("context_dd_value", "normal")
 
-		local inv = minetest.get_inventory({type="node", pos=pos})
-		local w = math.ceil(cube_nodes.nodes_count/4)
-		inv:set_size(pm_output_list_name, w*4)
+		local inv = core.get_inventory({type="node", pos=pos})
+		local w = 8
+		local h = math.ceil(cube_nodes.nodes_count/w)
+		inv:set_size(pm_output_list_name, w * h)
 		inv:set_width(pm_output_list_name, w)
 
 		inv:set_size(pm_node_list_name, 1)
 		inv:set_size(pm_dye_list_name, 1)
+	end,
+	on_rightclick = function(pos)
+		-- Refresh the stored formspec so machines placed with an older
+		-- version of this mod get the fixed layout too
+		core.get_meta(pos):set_string("formspec", cube_nodes.get_paint_machine_fs(pos, cube_nodes.nodes_count))
 	end,
 	allow_metadata_inventory_put = function(pos, listname, index, stack, player)
 		local not_allow = listname == pm_output_list_name or
@@ -155,9 +176,9 @@ minetest.register_node("cube_nodes:paint_machine", {
 	on_receive_fields = function(pos, formname, fields, sender)
 		if fields.pm_font_dd then
 			local new_ftype = fields.pm_font_dd:lower()
-			minetest.get_meta(pos):set_string("context_dd_value", new_ftype)
+			core.get_meta(pos):set_string("context_dd_value", new_ftype)
 
-			local inv = minetest.get_inventory({type="node", pos=pos})
+			local inv = core.get_inventory({type="node", pos=pos})
 			local node_stack = inv:get_stack(pm_node_list_name, 1)
 			local dye_stack = inv:get_stack(pm_dye_list_name, 1)
 
@@ -165,11 +186,11 @@ minetest.register_node("cube_nodes:paint_machine", {
 
 			inv:set_list(pm_output_list_name, list)
 		elseif fields.quit then
-			minetest.get_meta(pos):set_string("context_dd_value", "normal")
+			core.get_meta(pos):set_string("context_dd_value", "normal")
 		end
 	end,
 	can_dig = function(pos)
-		local inv = minetest.get_inventory({type="node",pos=pos})
+		local inv = core.get_inventory({type="node",pos=pos})
 		local node_l_empty = inv:is_empty(pm_node_list_name)
 		local dye_l_empty = inv:is_empty(pm_dye_list_name)
 
@@ -177,7 +198,7 @@ minetest.register_node("cube_nodes:paint_machine", {
 	end
 })
 
-minetest.register_craft({
+core.register_craft({
 	output = "cube_nodes:paint_machine",
 	recipe = {
 		{"default:steelblock", "default:steelblock", "bucket:bucket_empty"},

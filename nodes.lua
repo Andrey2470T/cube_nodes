@@ -154,7 +154,7 @@ for _, font in ipairs(cube_nodes.fonts) do
 			for _, color in ipairs(cube_nodes.colors) do
 				local nodename = ("node_%s%s"):format(font == "normal" and "" or font .. "_", symbol)
 
-				minetest.register_node("cube_nodes:" .. nodename .. "_" .. color, {
+				core.register_node("cube_nodes:" .. nodename .. "_" .. color, {
 					description = cube_nodes.name_to_desc(nodename),
 					tiles = {
 						"blank.png^(" .. nodename .. ".png^[colorize:" .. color .. ":255)",
@@ -175,7 +175,7 @@ for _, font in ipairs(cube_nodes.fonts) do
 	end
 end
 
-minetest.register_craft({
+core.register_craft({
 	type = "shapeless",
 	output = "cube_nodes:node_empty_black",
 	recipe = {"default:steelblock", "dye:black"}
