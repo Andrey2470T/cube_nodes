@@ -1,201 +1,257 @@
--- Painting Machine
+-- Painting Machine: put in an empty cube and a dye, pick a font and take
+-- the painted cubes you need from the output list.
 
-local pm_output_list_name = "pm_list"
-local pm_node_list_name = "pm_node_list"
-local pm_dye_list_name = "pm_dye_list"
-local pm_font_dd = "pm_font_dd"
+----------------------------------------------------------------- constants --
 
-function cube_nodes.get_paint_machine_fs(pos, nodes_count)
-	local list_w = 8
-	local list_h = math.ceil(nodes_count / list_w)
+-- Inventory list names
+local OUTPUT_LIST = "pm_list"
+local NODE_LIST = "pm_node_list"
+local DYE_LIST = "pm_dye_list"
 
-	-- A slot is 1.0 units in size and the spacing between slots is 0.25 units,
-	-- so every slot takes 1.25 units of the container
-	local slot_step = 1.25
-	local visible_slots_h = 4
-	local scroll_factor = 0.1
+-- Formspec field names
+local FONT_DROPDOWN = "pm_font_dd"
+local SCROLLBAR = "pm_scrlbar"
 
-	local container_w = slot_step * list_w - 0.25
-	local container_h = slot_step * visible_slots_h - 0.25
-	local content_h = slot_step * list_h - 0.25
+-- Meta key the selected font is stored under.
+-- Must not be renamed: machines placed by older mod versions use it.
+local FONT_META = "context_dd_value"
 
-	local scroll_dist = math.max(content_h - container_h, 0)
-	local scroll_max = math.floor(scroll_dist / scroll_factor + 0.5)
-	-- The thumb takes the same fraction of the scrollbar as the visible
-	-- window takes of the whole content
-	local thumb_size = math.max(1, math.floor(scroll_max * container_h / content_h + 0.5))
+-- Output list geometry
+local OUTPUT_LIST_W = 8 -- slots per row
 
-	local fs = table.concat({
-		"formspec_version[4]size[11,13]",
-		-- smallstep/largestep = one slot row / one visible page
-		("scrollbaroptions[min=0;max=%d;thumbsize=%d;smallstep=%d;largestep=%d;arrows=hide]"):format(
-			scroll_max, thumb_size,
-			math.floor(slot_step / scroll_factor + 0.5),
-			math.floor(container_h / scroll_factor + 0.5)),
-		-- The scrollbar must not overlap the scroll_container, otherwise the
-		-- container intercepts mouse clicks aimed at the scrollbar
-		("scrollbar[10.4,0.5;0.3,%g;vertical;pm_scrlbar;]"):format(container_h),
-		("scroll_container[0.5,0.5;%g,%g;pm_scrlbar;vertical;%g]"):format(container_w, container_h, scroll_factor),
-			-- The full list must be drawn inside the container, the container clips it
-			("list[nodemeta:%d,%d,%d;%s;0,0;%d,%d;]"):format(pos.x, pos.y, pos.z, pm_output_list_name, list_w, list_h),
-		"scroll_container_end[]",
-		"list[current_player;main;0.5,7.5;8,4;]",
-		("label[2,6;Node:]list[nodemeta:%d,%d,%d;%s;2,6.25;1,1;]"):format(pos.x, pos.y, pos.z, pm_node_list_name),
-		("label[5,6;Dye:]list[nodemeta:%d,%d,%d;%s;5,6.25;1,1;]"):format(pos.x, pos.y, pos.z, pm_dye_list_name),
-		"image[5,6.25;1,1;dye_icon.png]",
-		("label[7,6;Font:]dropdown[7,6.25;1.5;%s;Normal,Italic,Bold;1;]"):format(pm_font_dd)
-	})
+-- Formspec layout, in real-coordinate units. A slot is 1.0 units in size
+-- plus 0.25 units of spacing between slots, so a slot takes 1.25 units.
+local SLOT_STEP = 1.25
+local VISIBLE_ROWS = 4
+local SCROLL_FACTOR = 0.1
+local WINDOW_X, WINDOW_Y = 0.5, 0.5
+local SCROLLBAR_X = 10.4
+local SCROLLBAR_W = 0.3
 
-	return fs
+------------------------------------------------------------------- formspec --
+
+local function fs_list(pos, listname, x, y, w, h)
+	return ("list[nodemeta:%d,%d,%d;%s;%g,%g;%d,%d;]")
+		:format(pos.x, pos.y, pos.z, listname, x, y, w, h)
 end
 
-function cube_nodes.form_paint_machine_output_list(node_list_item, dye_list_item, font_type)
-	local node_item_name = node_list_item:get_name()
-	local dye_item_name = dye_list_item:get_name()
+local function round(value)
+	return math.floor(value + 0.5)
+end
 
-	local count = math.min(node_list_item:get_count(), dye_list_item:get_count())
+-- Dropdown choices are generated from the font list so that the two
+-- cannot get out of sync
+local FONT_CHOICES = {}
+for _, font in ipairs(cube_nodes.fonts) do
+	FONT_CHOICES[#FONT_CHOICES + 1] = font:sub(1, 1):upper() .. font:sub(2)
+end
+FONT_CHOICES = table.concat(FONT_CHOICES, ",")
 
+local function get_paint_machine_fs(pos, nodes_count)
+	local list_h = math.ceil(nodes_count / OUTPUT_LIST_W)
+
+	-- Size of the scrolling window and of the full list inside it
+	local window_w = SLOT_STEP * OUTPUT_LIST_W - 0.25
+	local window_h = SLOT_STEP * VISIBLE_ROWS - 0.25
+	local content_h = SLOT_STEP * list_h - 0.25
+
+	-- The scrollbar scrolls only the hidden part of the content; its thumb
+	-- covers the same fraction of the bar as the window covers of the content
+	local scroll_max = round(math.max(content_h - window_h, 0) / SCROLL_FACTOR)
+	local thumb_size = math.max(1, round(scroll_max * window_h / content_h))
+
+	local fs = {
+		"formspec_version[4]size[11,13]",
+
+		-- smallstep/largestep = one slot row / one visible page
+		("scrollbaroptions[min=0;max=%d;thumbsize=%d;smallstep=%d;"
+			.. "largestep=%d;arrows=hide]"):format(
+			scroll_max, thumb_size,
+			round(SLOT_STEP / SCROLL_FACTOR),
+			round(window_h / SCROLL_FACTOR)),
+
+		-- The scrollbar must not overlap the scroll_container, otherwise
+		-- the container intercepts mouse clicks aimed at the scrollbar
+		("scrollbar[%g,%g;%g,%g;vertical;%s;]"):format(
+			SCROLLBAR_X, WINDOW_Y, SCROLLBAR_W, window_h, SCROLLBAR),
+
+		("scroll_container[%g,%g;%g,%g;%s;vertical;%g]"):format(
+			WINDOW_X, WINDOW_Y, window_w, window_h, SCROLLBAR, SCROLL_FACTOR),
+			-- the full list is drawn here, the container clips it
+			fs_list(pos, OUTPUT_LIST, 0, 0, OUTPUT_LIST_W, list_h),
+		"scroll_container_end[]",
+
+		"list[current_player;main;0.5,7.5;8,4;]",
+
+		"label[2,6;Node:]" .. fs_list(pos, NODE_LIST, 2, 6.25, 1, 1),
+		"label[5,6;Dye:]" .. fs_list(pos, DYE_LIST, 5, 6.25, 1, 1)
+			.. "image[5,6.25;1,1;dye_icon.png]",
+		("label[7,6;Font:]dropdown[7,6.25;1.5;%s;%s;1;]")
+			:format(FONT_DROPDOWN, FONT_CHOICES),
+	}
+
+	return table.concat(fs)
+end
+
+---------------------------------------------------------------- output list --
+
+-- Dye colors that are named differently from the node colors
+local DYE_COLOR_ALIASES = {
+	dark_green = "darkgreen",
+	dark_grey = "darkgrey",
+}
+
+local function dye_color(dye_stack)
+	local name = dye_stack:get_name()
+	local color = name:sub(name:find("dye:") + 4)
+
+	return DYE_COLOR_ALIASES[color] or color
+end
+
+local function build_output_list(node_stack, dye_stack, font)
+	if not node_stack:get_name():match("node_empty")
+		or not dye_stack:get_name():match("dye:") then
+		return {}
+	end
+
+	local color = dye_color(dye_stack)
+	-- there are no white nodes
+	if color == "white" then
+		return {}
+	end
+
+	local prefix = cube_nodes.font_prefix(font)
+	local count = math.min(node_stack:get_count(), dye_stack:get_count())
 	local list = {}
 
-	if not node_item_name:match("node_empty") then
-		return list
-	end
-
-	if not dye_item_name:match("dye:") then
-		return list
-	end
-
-	local f_type = font_type == "normal" and "" or font_type .. "_"
-	local color_s, color_e = dye_item_name:find("dye:")
-	local color = dye_item_name:sub(color_e+1)
-
-	if color == "white" then return list end
-
-	if color == "dark_green" then
-		color = "darkgreen"
-	elseif color == "dark_grey" then
-		color = "darkgrey"
-	end
-
-	for _, sym in ipairs(cube_nodes.symbols) do
-		if not cube_nodes.skip_nodes[font_type] or (cube_nodes.skip_nodes[font_type] and not cube_nodes.skip_nodes[font_type][sym]) then
-			local nodename = "cube_nodes:node_" .. f_type .. sym .. "_" .. color
-
-			local stack = ItemStack(nodename)
+	for _, symbol in ipairs(cube_nodes.symbols) do
+		if not cube_nodes.is_skipped(font, symbol) then
+			local stack = ItemStack(
+				"cube_nodes:node_" .. prefix .. symbol .. "_" .. color)
 			stack:set_count(count)
-
-			table.insert(list, stack)
+			list[#list + 1] = stack
 		end
 	end
 
 	return list
 end
 
-function cube_nodes.on_inv_action_in_paint_machine(pos, action, listname, taken_count)
-	if not pos then return end
+-------------------------------------------------------- inventory handling --
 
-	local dd_value = core.get_meta(pos):get_string("context_dd_value")
+local function take_from_inputs(inv, count)
+	for _, listname in ipairs({NODE_LIST, DYE_LIST}) do
+		local stack = inv:get_stack(listname, 1)
+		stack:take_item(count)
+		inv:set_stack(listname, 1, stack)
+	end
+end
 
-	local inv = core.get_inventory({type="node", pos=pos})
+local function update_output(pos)
+	local inv = core.get_inventory({type = "node", pos = pos})
+	local font = core.get_meta(pos):get_string(FONT_META)
 
-	if action == "take" and listname == pm_output_list_name then
-		local pm_nodes_stack = inv:get_stack(pm_node_list_name, 1)
-		local pm_dyes_stack = inv:get_stack(pm_dye_list_name, 1)
-		pm_nodes_stack:take_item(taken_count)
-		pm_dyes_stack:take_item(taken_count)
-		inv:set_stack(pm_node_list_name, 1, pm_nodes_stack)
-		inv:set_stack(pm_dye_list_name, 1, pm_dyes_stack)
+	local node_stack = inv:get_stack(NODE_LIST, 1)
+	local dye_stack = inv:get_stack(DYE_LIST, 1)
+
+	inv:set_list(OUTPUT_LIST, build_output_list(node_stack, dye_stack, font))
+end
+
+local function on_inventory_change(pos, action, listname, taken_count)
+	if action == "take" and listname == OUTPUT_LIST then
+		-- every output cube taken costs one input cube and one dye
+		local inv = core.get_inventory({type = "node", pos = pos})
+		take_from_inputs(inv, taken_count)
 	end
 
-	-- Waiting for when the given list gets updated and only after that get new itemstacks
+	-- Wait until the engine has applied the change, then rebuild the output
 	core.after(0.01, function()
-		local node_stack = inv:get_stack(pm_node_list_name, 1)
-		local dye_stack = inv:get_stack(pm_dye_list_name, 1)
-
-		local list = cube_nodes.form_paint_machine_output_list(node_stack, dye_stack, dd_value)
-		inv:set_list(pm_output_list_name, list)
+		update_output(pos)
 	end)
 end
 
+------------------------------------------------------------- node & craft --
+
+local MACHINE_BOX = {
+	type = "fixed",
+	fixed = {-0.5, -0.5, -0.5, 0.5, 1.5, 0.5},
+}
+
+-- Which item names may be put into which input list
+local ALLOWED_INPUTS = {
+	[NODE_LIST] = "node_empty",
+	[DYE_LIST] = "dye:",
+}
+
 core.register_node("cube_nodes:paint_machine", {
 	description = "Painting Machine",
-	visual_scale = 0.5,
 	drawtype = "mesh",
+	visual_scale = 0.5,
 	mesh = "painting_machine.b3d",
 	tiles = {"painting_machine.png"},
 	paramtype = "light",
 	paramtype2 = "facedir",
-	groups = {cracky=2.5},
 	use_texture_alpha = "blend",
-	collision_box = {
-		type = "fixed",
-		fixed = {-0.5, -0.5, -0.5, 0.5, 1.5, 0.5}
-	},
-	selection_box = {
-		type = "fixed",
-		fixed = {-0.5, -0.5, -0.5, 0.5, 1.5, 0.5}
-	},
+	groups = {cracky = 2.5},
+	collision_box = MACHINE_BOX,
+	selection_box = MACHINE_BOX,
+
 	on_construct = function(pos)
 		local meta = core.get_meta(pos)
+		meta:set_string("formspec",
+			get_paint_machine_fs(pos, cube_nodes.nodes_count))
+		meta:set_string(FONT_META, "normal")
 
-		meta:set_string("formspec", cube_nodes.get_paint_machine_fs(pos, cube_nodes.nodes_count))
-		meta:set_string("context_dd_value", "normal")
-
-		local inv = core.get_inventory({type="node", pos=pos})
-		local w = 8
-		local h = math.ceil(cube_nodes.nodes_count/w)
-		inv:set_size(pm_output_list_name, w * h)
-		inv:set_width(pm_output_list_name, w)
-
-		inv:set_size(pm_node_list_name, 1)
-		inv:set_size(pm_dye_list_name, 1)
+		local inv = core.get_inventory({type = "node", pos = pos})
+		local rows = math.ceil(cube_nodes.nodes_count / OUTPUT_LIST_W)
+		inv:set_size(OUTPUT_LIST, OUTPUT_LIST_W * rows)
+		inv:set_width(OUTPUT_LIST, OUTPUT_LIST_W)
+		inv:set_size(NODE_LIST, 1)
+		inv:set_size(DYE_LIST, 1)
 	end,
+
 	on_rightclick = function(pos)
-		-- Refresh the stored formspec so machines placed with an older
-		-- version of this mod get the fixed layout too
-		core.get_meta(pos):set_string("formspec", cube_nodes.get_paint_machine_fs(pos, cube_nodes.nodes_count))
+		-- Refresh the stored formspec so machines placed by an older mod
+		-- version get the current layout too
+		core.get_meta(pos):set_string("formspec",
+			get_paint_machine_fs(pos, cube_nodes.nodes_count))
 	end,
-	allow_metadata_inventory_put = function(pos, listname, index, stack, player)
-		local not_allow = listname == pm_output_list_name or
-			(listname == pm_node_list_name and not stack:get_name():match("node_empty")) or
-			(listname == pm_dye_list_name and not stack:get_name():match("dye:"))
 
-		if not_allow then return 0 end
+	allow_metadata_inventory_put = function(_, listname, _, stack)
+		local pattern = ALLOWED_INPUTS[listname]
+
+		if not pattern or not stack:get_name():match(pattern) then
+			return 0
+		end
 
 		return stack:get_count()
 	end,
-	on_metadata_inventory_move = function(pos, from_list, from_index, to_list, to_index, count, player)
-		cube_nodes.on_inv_action_in_paint_machine(pos, "move", to_list)
-	end,
-	on_metadata_inventory_put = function(pos, listname, index, stack, player)
-		cube_nodes.on_inv_action_in_paint_machine(pos, "put", listname)
-	end,
-	on_metadata_inventory_take = function(pos, listname, index, stack, player)
-		cube_nodes.on_inv_action_in_paint_machine(pos, "take", listname, stack:get_count())
-	end,
-	on_receive_fields = function(pos, formname, fields, sender)
-		if fields.pm_font_dd then
-			local new_ftype = fields.pm_font_dd:lower()
-			core.get_meta(pos):set_string("context_dd_value", new_ftype)
 
-			local inv = core.get_inventory({type="node", pos=pos})
-			local node_stack = inv:get_stack(pm_node_list_name, 1)
-			local dye_stack = inv:get_stack(pm_dye_list_name, 1)
+	on_metadata_inventory_put = function(pos, listname)
+		on_inventory_change(pos, "put", listname)
+	end,
 
-			local list = cube_nodes.form_paint_machine_output_list(node_stack, dye_stack, new_ftype)
+	on_metadata_inventory_move = function(pos, _, _, to_list)
+		on_inventory_change(pos, "move", to_list)
+	end,
 
-			inv:set_list(pm_output_list_name, list)
+	on_metadata_inventory_take = function(pos, listname, _, stack)
+		on_inventory_change(pos, "take", listname, stack:get_count())
+	end,
+
+	on_receive_fields = function(pos, _, fields)
+		if fields[FONT_DROPDOWN] then
+			local font = fields[FONT_DROPDOWN]:lower()
+			core.get_meta(pos):set_string(FONT_META, font)
+			update_output(pos)
 		elseif fields.quit then
-			core.get_meta(pos):set_string("context_dd_value", "normal")
+			core.get_meta(pos):set_string(FONT_META, "normal")
 		end
 	end,
-	can_dig = function(pos)
-		local inv = core.get_inventory({type="node",pos=pos})
-		local node_l_empty = inv:is_empty(pm_node_list_name)
-		local dye_l_empty = inv:is_empty(pm_dye_list_name)
 
-		return node_l_empty and dye_l_empty
-	end
+	can_dig = function(pos)
+		local inv = core.get_inventory({type = "node", pos = pos})
+		return inv:is_empty(NODE_LIST) and inv:is_empty(DYE_LIST)
+	end,
 })
 
 core.register_craft({
@@ -203,6 +259,6 @@ core.register_craft({
 	recipe = {
 		{"default:steelblock", "default:steelblock", "bucket:bucket_empty"},
 		{"", "default:glass", ""},
-		{"", "", ""}
-	}
+		{"", "", ""},
+	},
 })
