@@ -1,26 +1,34 @@
--- Painting Machine: put in an empty cube and a dye, pick a font and take
--- the painted cubes you need from the output list.
+-- Painting Machine: put in an empty cube and a dye, pick a font, click the
+-- button of the symbol you need and take the painted cube from the output
+-- slot.
 
------------------------------------------------------------------ constants --
+-- constants
 
 -- Inventory list names
-local OUTPUT_LIST = "pm_list"
+local OUTPUT_SLOT = "pm_output"
 local NODE_LIST = "pm_node_list"
 local DYE_LIST = "pm_dye_list"
+
+-- Output list of mod versions before the symbol buttons; old machines may
+-- still hold painted cubes in it, they are handed back to the player on use
+local LEGACY_LIST = "pm_list"
 
 -- Formspec field names
 local FONT_DROPDOWN = "pm_font_dd"
 local SCROLLBAR = "pm_scrlbar"
+local BUTTON_PREFIX = "pm_btn_"
 
 -- Meta key the selected font is stored under.
 -- Must not be renamed: machines placed by older mod versions use it.
 local FONT_META = "context_dd_value"
 
--- Output list geometry
-local OUTPUT_LIST_W = 8 -- slots per row
+-- Meta key the state of the stored formspec is cached under, so that the
+-- formspec is rebuilt and re-sent only when its contents really changed
+local FS_STATE_META = "pm_fs_state"
 
--- Formspec layout, in real-coordinate units. A slot is 1.0 units in size
--- plus 0.25 units of spacing between slots, so a slot takes 1.25 units.
+-- Button grid geometry, in real-coordinate units. A button is 1.0 units in
+-- size plus 0.25 units of spacing between buttons, so it takes 1.25 units.
+local BUTTON_COLS = 8 -- buttons per row
 local SLOT_STEP = 1.25
 local VISIBLE_ROWS = 4
 local SCROLL_FACTOR = 0.1
@@ -28,47 +36,51 @@ local WINDOW_X, WINDOW_Y = 0.5, 0.5
 local SCROLLBAR_X = 10.4
 local SCROLLBAR_W = 0.3
 
-------------------------------------------------------------------- formspec --
+-- formspec
 
 local function fs_list(pos, listname, x, y, w, h)
 	return ("list[nodemeta:%d,%d,%d;%s;%g,%g;%d,%d;]")
 		:format(pos.x, pos.y, pos.z, listname, x, y, w, h)
 end
 
-local function round(value)
-	return math.floor(value + 0.5)
-end
-
 -- Dropdown choices are generated from the font list so that the two
--- cannot get out of sync
+-- cannot get out of sync; font_index doubles as a font name validator
 local FONT_CHOICES = {}
-for _, font in ipairs(cube_nodes.fonts) do
-	FONT_CHOICES[#FONT_CHOICES + 1] = font:sub(1, 1):upper() .. font:sub(2)
+local font_index = {}
+for i, font in ipairs(cube_nodes.fonts) do
+	FONT_CHOICES[i] = font:sub(1, 1):upper() .. font:sub(2)
+	font_index[font] = i
 end
 FONT_CHOICES = table.concat(FONT_CHOICES, ",")
 
-local function get_paint_machine_fs(pos, nodes_count)
-	local list_h = math.ceil(nodes_count / OUTPUT_LIST_W)
+local function get_font(meta)
+	local font = meta:get_string(FONT_META)
+	return font_index[font] and font or "normal"
+end
 
-	-- Size of the scrolling window and of the full list inside it
-	local window_w = SLOT_STEP * OUTPUT_LIST_W - 0.25
+local function get_paint_machine_fs(pos, outputs)
+	local font = get_font(core.get_meta(pos))
+	local rows = math.max(1, math.ceil(#outputs / BUTTON_COLS))
+
+	-- Size of the scrolling window and of the full button grid inside it
+	local window_w = SLOT_STEP * BUTTON_COLS - 0.25
 	local window_h = SLOT_STEP * VISIBLE_ROWS - 0.25
-	local content_h = SLOT_STEP * list_h - 0.25
+	local content_h = SLOT_STEP * rows - 0.25
 
 	-- The scrollbar scrolls only the hidden part of the content; its thumb
 	-- covers the same fraction of the bar as the window covers of the content
-	local scroll_max = round(math.max(content_h - window_h, 0) / SCROLL_FACTOR)
-	local thumb_size = math.max(1, round(scroll_max * window_h / content_h))
+	local scroll_max = math.round(math.max(content_h - window_h, 0) / SCROLL_FACTOR)
+	local thumb_size = math.max(1, math.round(scroll_max * window_h / content_h))
 
 	local fs = {
 		"formspec_version[4]size[11,13]",
 
-		-- smallstep/largestep = one slot row / one visible page
+		-- smallstep/largestep = one button row / one visible page
 		("scrollbaroptions[min=0;max=%d;thumbsize=%d;smallstep=%d;"
 			.. "largestep=%d;arrows=hide]"):format(
 			scroll_max, thumb_size,
-			round(SLOT_STEP / SCROLL_FACTOR),
-			round(window_h / SCROLL_FACTOR)),
+			math.round(SLOT_STEP / SCROLL_FACTOR),
+			math.round(window_h / SCROLL_FACTOR)),
 
 		-- The scrollbar must not overlap the scroll_container, otherwise
 		-- the container intercepts mouse clicks aimed at the scrollbar
@@ -77,23 +89,35 @@ local function get_paint_machine_fs(pos, nodes_count)
 
 		("scroll_container[%g,%g;%g,%g;%s;vertical;%g]"):format(
 			WINDOW_X, WINDOW_Y, window_w, window_h, SCROLLBAR, SCROLL_FACTOR),
-			-- the full list is drawn here, the container clips it
-			fs_list(pos, OUTPUT_LIST, 0, 0, OUTPUT_LIST_W, list_h),
-		"scroll_container_end[]",
-
-		"list[current_player;main;0.5,7.5;8,4;]",
-
-		"label[2,6;Node:]" .. fs_list(pos, NODE_LIST, 2, 6.25, 1, 1),
-		"label[5,6;Dye:]" .. fs_list(pos, DYE_LIST, 5, 6.25, 1, 1)
-			.. "image[5,6.25;1,1;dye_icon.png]",
-		("label[7,6;Font:]dropdown[7,6.25;1.5;%s;%s;1;]")
-			:format(FONT_DROPDOWN, FONT_CHOICES),
 	}
+
+	-- One square button per paintable symbol, with the icon of the cube it
+	-- paints. The buttons show up only when both input lists are filled.
+	for i, entry in ipairs(outputs) do
+		local index = i - 1
+		fs[#fs + 1] = ("item_image_button[%g,%g;1,1;%s;%s%s;]"):format(
+			(index % BUTTON_COLS) * SLOT_STEP,
+			math.floor(index / BUTTON_COLS) * SLOT_STEP,
+			entry.stack:get_name(),
+			BUTTON_PREFIX, entry.symbol)
+	end
+
+	fs[#fs + 1] = "scroll_container_end[]"
+
+	fs[#fs + 1] = "list[current_player;main;0.5,7.5;8,4;]"
+
+	fs[#fs + 1] = "label[2,6;Node:]" .. fs_list(pos, NODE_LIST, 2, 6.25, 1, 1)
+	fs[#fs + 1] = "label[5,6;Dye:]" .. fs_list(pos, DYE_LIST, 5, 6.25, 1, 1)
+		.. "image[5,6.25;1,1;dye_icon.png]"
+	fs[#fs + 1] = ("label[7,6;Font:]dropdown[7,6.25;1.5;%s;%s;%d;]")
+		:format(FONT_DROPDOWN, FONT_CHOICES, font_index[font])
+	fs[#fs + 1] = "label[8.75,6;Output:]"
+		.. fs_list(pos, OUTPUT_SLOT, 8.75, 6.25, 1, 1)
 
 	return table.concat(fs)
 end
 
----------------------------------------------------------------- output list --
+-- output
 
 -- Dye colors that are named differently from the node colors
 local DYE_COLOR_ALIASES = {
@@ -108,35 +132,127 @@ local function dye_color(dye_stack)
 	return DYE_COLOR_ALIASES[color] or color
 end
 
-local function build_output_list(node_stack, dye_stack, font)
+-- Color and count of the cubes paintable from the given input stacks,
+-- or nil if painting is not possible at all
+local function paint_params(node_stack, dye_stack)
 	if not node_stack:get_name():match("node_empty")
 		or not dye_stack:get_name():match("dye:") then
-		return {}
+		return
 	end
 
 	local color = dye_color(dye_stack)
 	-- there are no white nodes
 	if color == "white" then
+		return
+	end
+
+	return color, math.min(node_stack:get_count(), dye_stack:get_count())
+end
+
+-- All symbol cubes paintable from the given input stacks:
+-- a list of {symbol, stack} entries
+local function build_output_list(node_stack, dye_stack, font)
+	local color, count = paint_params(node_stack, dye_stack)
+	if not color then
 		return {}
 	end
 
-	local prefix = cube_nodes.font_prefix(font)
-	local count = math.min(node_stack:get_count(), dye_stack:get_count())
 	local list = {}
 
 	for _, symbol in ipairs(cube_nodes.symbols) do
 		if not cube_nodes.is_skipped(font, symbol) then
-			local stack = ItemStack(
-				"cube_nodes:node_" .. prefix .. symbol .. "_" .. color)
+			local stack = ItemStack(cube_nodes.node_name(font, symbol, color))
 			stack:set_count(count)
-			list[#list + 1] = stack
+			list[#list + 1] = {symbol = symbol, stack = stack}
 		end
 	end
 
 	return list
 end
 
--------------------------------------------------------- inventory handling --
+-- Known symbol names, to take apart item names correctly: the "normal"
+-- font has no prefix, so a font prefix can otherwise end up in the symbol
+local symbol_set = {}
+for _, symbol in ipairs(cube_nodes.symbols) do
+	symbol_set[symbol] = true
+end
+
+-- "cube_nodes:node_bold_A_black" -> {font = "bold", symbol = "A", color = "black"}
+local function parse_node_item(itemname)
+	local base = itemname:match("^cube_nodes:node_(.+)$")
+	if not base then
+		return
+	end
+
+	for _, font in ipairs(cube_nodes.fonts) do
+		local prefix = cube_nodes.font_prefix(font)
+		if base:sub(1, #prefix) == prefix then
+			local rest = base:sub(#prefix + 1)
+			for _, color in ipairs(cube_nodes.colors) do
+				local suffix = "_" .. color
+				if rest:sub(-#suffix) == suffix then
+					local symbol = rest:sub(1, -#suffix - 1)
+					if symbol_set[symbol] then
+						return {
+							font = font,
+							symbol = symbol,
+							color = color,
+						}
+					end
+				end
+			end
+		end
+	end
+end
+
+-- Mesh visuals entities handling (adds the paint fluid filling in the paint machine's transparent box for
+-- the current put dye and cube node for the current put symbol)
+
+-- The visuals live at fixed offsets from the machine node and are searched
+-- for around it on every update, so they survive server restarts and cannot
+-- get out of sync with the machine state
+local VISUALS = {
+	paint_fill = {
+		entity = "cube_nodes:paint_fill",
+		offset = vector.new(0, 1.25, 0),
+		pack = function(data)
+			return data.color
+		end,
+	},
+	node_symbol = {
+		entity = "cube_nodes:node_symbol",
+		offset = vector.new(0, 0, 0), -- the node center
+		pack = core.serialize,
+	},
+}
+
+-- Updates or removes (data == nil) a machine visual entity
+local function update_visual(pos, name, data)
+	local spec = VISUALS[name]
+	local anchor = vector.add(pos, spec.offset)
+
+	local object
+	for _, obj in ipairs(core.get_objects_inside_radius(anchor, 0.5)) do
+		local luaentity = obj:get_luaentity()
+		if luaentity and luaentity.name == spec.entity
+			and vector.distance(obj:get_pos(), anchor) < 0.1 then
+			object = obj
+			break
+		end
+	end
+
+	if not data then
+		if object then
+			object:remove()
+		end
+	elseif object then
+		object:get_luaentity():update_visual(data)
+	else
+		core.add_entity(anchor, spec.entity, spec.pack(data))
+	end
+end
+
+-- inventory handling
 
 local function take_from_inputs(inv, count)
 	for _, listname in ipairs({NODE_LIST, DYE_LIST}) do
@@ -146,30 +262,148 @@ local function take_from_inputs(inv, count)
 	end
 end
 
-local function update_output(pos)
-	local inv = core.get_inventory({type = "node", pos = pos})
-	local font = core.get_meta(pos):get_string(FONT_META)
+-- The machine formspec depends on the input stacks, but the engine does not
+-- refresh node formspecs that are already open; they are re-sent by hand to
+-- the players that currently have one open
+local open_forms = {} -- player name -> machine position
 
+core.register_on_leaveplayer(function(player)
+	open_forms[player:get_player_name()] = nil
+end)
+
+local function rebuild_formspec(pos)
+	local meta = core.get_meta(pos)
+	local inv = core.get_inventory({type = "node", pos = pos})
+	meta:set_string("formspec", get_paint_machine_fs(pos,
+		build_output_list(inv:get_stack(NODE_LIST, 1),
+			inv:get_stack(DYE_LIST, 1), get_font(meta))))
+end
+
+local function resend_formspec(pos)
+	pos = vector.round(pos)
+	local formspec = core.get_meta(pos):get_string("formspec")
+
+	for name, machine_pos in pairs(open_forms) do
+		if vector.equals(machine_pos, pos) then
+			local player = core.get_player_by_name(name)
+			if player then
+				core.show_formspec(name,
+					("nodemeta:%d,%d,%d"):format(pos.x, pos.y, pos.z),
+					formspec)
+			else
+				open_forms[name] = nil
+			end
+		end
+	end
+end
+
+-- Brings everything derived from the input stacks up to date: the output
+-- slot contents, the visual entities and the open formspecs
+local function refresh_paint_machine(pos)
+	local meta = core.get_meta(pos)
+	local inv = core.get_inventory({type = "node", pos = pos})
+
+	local font = get_font(meta)
 	local node_stack = inv:get_stack(NODE_LIST, 1)
 	local dye_stack = inv:get_stack(DYE_LIST, 1)
+	local color, count = paint_params(node_stack, dye_stack)
 
-	inv:set_list(OUTPUT_LIST, build_output_list(node_stack, dye_stack, font))
+	-- Invalidate the painted result if its inputs are gone or have changed
+	local output_stack = inv:get_stack(OUTPUT_SLOT, 1)
+	if not output_stack:is_empty() then
+		local painted = parse_node_item(output_stack:get_name())
+		if not color or not painted
+			or painted.font ~= font or painted.color ~= color then
+			inv:set_stack(OUTPUT_SLOT, 1, ItemStack())
+		elseif output_stack:get_count() > count then
+			output_stack:set_count(count)
+			inv:set_stack(OUTPUT_SLOT, 1, output_stack)
+		end
+	end
+
+	-- The paint fluid filling for the current dye
+	if dye_stack:get_name():match("dye:") then
+		update_visual(pos, "paint_fill", {color = dye_color(dye_stack)})
+	else
+		update_visual(pos, "paint_fill", nil)
+	end
+
+	-- The cube of the painted result while there is one, otherwise the cube
+	-- put into the node input
+	output_stack = inv:get_stack(OUTPUT_SLOT, 1)
+	local node_data
+	if not output_stack:is_empty() then
+		node_data = parse_node_item(output_stack:get_name())
+	elseif not node_stack:is_empty() then
+		node_data = parse_node_item(node_stack:get_name())
+	end
+	update_visual(pos, "node_symbol", node_data)
+
+	-- The open formspecs need a rebuild only when the button grid changed
+	local state = font .. "|" .. (color or "")
+	if meta:get_string(FS_STATE_META) ~= state then
+		meta:set_string(FS_STATE_META, state)
+		rebuild_formspec(pos)
+		resend_formspec(pos)
+	end
 end
 
 local function on_inventory_change(pos, action, listname, taken_count)
-	if action == "take" and listname == OUTPUT_LIST then
+	if action == "take" and listname == OUTPUT_SLOT then
 		-- every output cube taken costs one input cube and one dye
 		local inv = core.get_inventory({type = "node", pos = pos})
 		take_from_inputs(inv, taken_count)
 	end
 
-	-- Wait until the engine has applied the change, then rebuild the output
+	-- Wait until the engine has applied the change, then update the machine
 	core.after(0.01, function()
-		update_output(pos)
+		refresh_paint_machine(pos)
 	end)
 end
 
-------------------------------------------------------------- node & craft --
+-- Puts the stack of the chosen symbol cube into the output slot
+local function on_symbol_button(pos, player, symbol)
+	local meta = core.get_meta(pos)
+	local font = get_font(meta)
+	if cube_nodes.is_skipped(font, symbol) then
+		return
+	end
+
+	local inv = core.get_inventory({type = "node", pos = pos})
+
+	local old_stack = inv:get_stack(OUTPUT_SLOT, 1)
+	if not old_stack:is_empty() then
+		-- The replaced cubes leave the machine without being taken from the
+		-- output slot, so they are paid for right away
+		take_from_inputs(inv, old_stack:get_count())
+	end
+
+	local color, count = paint_params(
+		inv:get_stack(NODE_LIST, 1), inv:get_stack(DYE_LIST, 1))
+
+	local new_stack = ItemStack()
+	if color and count > 0 then
+		new_stack = ItemStack(cube_nodes.node_name(font, symbol, color))
+		new_stack:set_count(count)
+	end
+	inv:set_stack(OUTPUT_SLOT, 1, new_stack)
+
+	if not new_stack:is_empty() then
+		core.sound_play("painting_machine", {pos = pos}, true)
+	end
+
+	if not old_stack:is_empty() then
+		local leftover = player:get_inventory():add_item("main", old_stack)
+		if not leftover:is_empty() then
+			core.item_drop(leftover, player, pos)
+		end
+	end
+
+	-- refreshes the cube visual and the output slot for the changed inputs
+	refresh_paint_machine(pos)
+end
+
+-- node & craft
 
 local MACHINE_BOX = {
 	type = "fixed",
@@ -186,7 +420,7 @@ core.register_node("cube_nodes:paint_machine", {
 	description = "Painting Machine",
 	drawtype = "mesh",
 	visual_scale = 0.5,
-	mesh = "painting_machine.b3d",
+	mesh = "painting_machine.obj",
 	tiles = {"painting_machine.png"},
 	paramtype = "light",
 	paramtype2 = "facedir",
@@ -197,23 +431,46 @@ core.register_node("cube_nodes:paint_machine", {
 
 	on_construct = function(pos)
 		local meta = core.get_meta(pos)
-		meta:set_string("formspec",
-			get_paint_machine_fs(pos, cube_nodes.nodes_count))
 		meta:set_string(FONT_META, "normal")
 
 		local inv = core.get_inventory({type = "node", pos = pos})
-		local rows = math.ceil(cube_nodes.nodes_count / OUTPUT_LIST_W)
-		inv:set_size(OUTPUT_LIST, OUTPUT_LIST_W * rows)
-		inv:set_width(OUTPUT_LIST, OUTPUT_LIST_W)
 		inv:set_size(NODE_LIST, 1)
 		inv:set_size(DYE_LIST, 1)
+		inv:set_size(OUTPUT_SLOT, 1)
+
+		refresh_paint_machine(pos)
 	end,
 
-	on_rightclick = function(pos)
+	after_destruct = function(pos)
+		update_visual(pos, "paint_fill", nil)
+		update_visual(pos, "node_symbol", nil)
+	end,
+
+	on_rightclick = function(pos, _, clicker)
+		if clicker and clicker:is_player() then
+			open_forms[clicker:get_player_name()] = vector.round(pos)
+
+			-- Hand back what old mod versions kept in their output list,
+			-- which the symbol buttons have replaced
+			local inv = core.get_inventory({type = "node", pos = pos})
+			local legacy = inv:get_list(LEGACY_LIST)
+			if legacy then
+				for _, stack in ipairs(legacy) do
+					if not stack:is_empty() then
+						local leftover = clicker:add_item("main", stack)
+						if not leftover:is_empty() then
+							core.item_drop(leftover, clicker, pos)
+						end
+					end
+				end
+				inv:set_size(LEGACY_LIST, 0)
+			end
+		end
+
 		-- Refresh the stored formspec so machines placed by an older mod
 		-- version get the current layout too
-		core.get_meta(pos):set_string("formspec",
-			get_paint_machine_fs(pos, cube_nodes.nodes_count))
+		rebuild_formspec(pos)
+		refresh_paint_machine(pos)
 	end,
 
 	allow_metadata_inventory_put = function(_, listname, _, stack)
@@ -224,6 +481,28 @@ core.register_node("cube_nodes:paint_machine", {
 		end
 
 		return stack:get_count()
+	end,
+
+	-- The output slot is filled by the symbol buttons only: nothing can be
+	-- moved into it or out of it inside the machine inventory by hand
+	allow_metadata_inventory_move = function(pos, from_list, from_index,
+		to_list, _, count)
+		if from_list == OUTPUT_SLOT or to_list == OUTPUT_SLOT then
+			return 0
+		end
+
+		local pattern = ALLOWED_INPUTS[to_list]
+		if not pattern then
+			return 0
+		end
+
+		local stack = core.get_inventory({type = "node", pos = pos})
+			:get_stack(from_list, from_index)
+		if not stack:get_name():match(pattern) then
+			return 0
+		end
+
+		return count
 	end,
 
 	on_metadata_inventory_put = function(pos, listname)
@@ -238,19 +517,48 @@ core.register_node("cube_nodes:paint_machine", {
 		on_inventory_change(pos, "take", listname, stack:get_count())
 	end,
 
-	on_receive_fields = function(pos, _, fields)
+	on_receive_fields = function(pos, _, fields, player)
+		if fields.quit then
+			if player then
+				open_forms[player:get_player_name()] = nil
+			end
+			core.get_meta(pos):set_string(FONT_META, "normal")
+			refresh_paint_machine(pos)
+			return
+		end
+
+		-- The engine submits the current dropdown value together with every
+		-- button click, so the font is applied first and the button is then
+		-- handled below instead of the dropdown swallowing the click
+		local font_changed = false
 		if fields[FONT_DROPDOWN] then
 			local font = fields[FONT_DROPDOWN]:lower()
-			core.get_meta(pos):set_string(FONT_META, font)
-			update_output(pos)
-		elseif fields.quit then
-			core.get_meta(pos):set_string(FONT_META, "normal")
+			if font_index[font]
+				and font ~= core.get_meta(pos):get_string(FONT_META) then
+				core.get_meta(pos):set_string(FONT_META, font)
+				font_changed = true
+			end
+		end
+
+		-- a symbol button was pressed
+		for field in pairs(fields) do
+			local symbol = field:match("^" .. BUTTON_PREFIX .. "(.+)$")
+			if symbol then
+				-- refreshes the form and the machine on its own
+				on_symbol_button(pos, player, symbol)
+				return
+			end
+		end
+
+		if font_changed then
+			refresh_paint_machine(pos)
 		end
 	end,
 
 	can_dig = function(pos)
 		local inv = core.get_inventory({type = "node", pos = pos})
 		return inv:is_empty(NODE_LIST) and inv:is_empty(DYE_LIST)
+			and inv:is_empty(OUTPUT_SLOT)
 	end,
 })
 
@@ -262,3 +570,54 @@ core.register_craft({
 		{"", "", ""},
 	},
 })
+
+core.register_entity("cube_nodes:paint_fill", {
+	physical = false,
+	pointable = false,
+	visual = "cube",
+	visual_size = {x=0.7, y=0.4, z=0.7},
+	textures = {"blank.png"},
+	use_texture_alpha = true,
+	on_activate = function(self, staticdata)
+		self:update_visual({color=staticdata})
+		return true
+	end,
+	update_visual = function(self, new_data)
+		self.color = new_data.color or ""
+		self.object:set_properties({textures={"blank.png^[colorize:" .. self.color .. ":200"}})
+	end,
+	get_staticdata = function(self)
+		return self.color
+	end
+});
+
+core.register_entity("cube_nodes:node_symbol", {
+	physical = false,
+	pointable = false,
+	visual = "node",
+	visual_size = {x=0.8, y=0.8, z=0.8},
+	node = {name=cube_nodes.node_name("normal", "empty", "black")},
+	use_texture_alpha = true,
+	on_activate = function(self, staticdata)
+		local data = {}
+		if staticdata ~= "" then
+			data = core.deserialize(staticdata) or {}
+		end
+		self:update_visual(data)
+
+		return true
+	end,
+	update_visual = function(self, new_data)
+		self.font = new_data.font or ""
+		self.symbol = new_data.symbol or ""
+		self.color = new_data.color or ""
+
+		local name = cube_nodes.node_name(self.font, self.symbol, self.color)
+		if core.registered_nodes[name] then
+			self.object:set_properties({node={name=name}})
+		end
+	end,
+	get_staticdata = function(self)
+		return core.serialize({font=self.font, symbol=self.symbol, color=self.color})
+	end
+});

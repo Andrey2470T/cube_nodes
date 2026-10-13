@@ -1,6 +1,6 @@
 -- Symbol cube nodes: "cube_nodes:node_<font>_<symbol>_<color>"
 
------------------------------------------------------------------------ data --
+-- data
 
 cube_nodes.symbols = {
 	-- digits
@@ -58,7 +58,7 @@ cube_nodes.skip_nodes = {
 
 cube_nodes.nodes_count = #cube_nodes.symbols
 
--------------------------------------------------------------------- helpers --
+-- helpers
 
 -- The "normal" font has no font part in node and item names
 function cube_nodes.font_prefix(font)
@@ -66,6 +66,14 @@ function cube_nodes.font_prefix(font)
 		return ""
 	end
 	return font .. "_"
+end
+
+function cube_nodes.node_name_base(font, symbol)
+	return "node_" .. cube_nodes.font_prefix(font) .. symbol
+end
+
+function cube_nodes.node_name(font, symbol, color)
+	return "cube_nodes:" .. cube_nodes.node_name_base(font, symbol) .. "_" .. color
 end
 
 function cube_nodes.is_skipped(font, symbol)
@@ -82,12 +90,12 @@ function cube_nodes.name_to_desc(name)
 	return table.concat(words, " ")
 end
 
----------------------------------------------------------- node registration --
+-- node registration
 
 local function register_cube_node(font, symbol, color)
-	local name = "node_" .. cube_nodes.font_prefix(font) .. symbol
+	local name = cube_nodes.node_name_base(font, symbol)
 
-	core.register_node("cube_nodes:" .. name .. "_" .. color, {
+	core.register_node(cube_nodes.node_name(font, symbol, color), {
 		description = cube_nodes.name_to_desc(name),
 		tiles = {
 			("blank.png^(%s.png^[colorize:%s:255)"):format(name, color),
@@ -116,8 +124,6 @@ for _, font in ipairs(cube_nodes.fonts) do
 		end
 	end
 end
-
------------------------------------------------------------------------ craft --
 
 core.register_craft({
 	type = "shapeless",

@@ -1,4 +1,4 @@
-cube_nodes= {}
+cube_nodes = {}
 
 local modpath = core.get_modpath("cube_nodes")
 
