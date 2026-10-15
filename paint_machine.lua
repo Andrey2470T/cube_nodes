@@ -1,6 +1,6 @@
 -- Painting Machine: put in an empty cube and a dye, pick a font, click the
--- button of the symbol you need and take the painted cube from the output
--- slot.
+-- button of the symbol you need — this spends the inputs right away — and
+-- take the painted cube from the output slot.
 
 -- constants
 
@@ -92,7 +92,8 @@ local function get_paint_machine_fs(pos, outputs)
 	}
 
 	-- One square button per paintable symbol, with the icon of the cube it
-	-- paints. The buttons show up only when both input lists are filled.
+	-- paints. The buttons show up only when both input lists are filled and
+	-- no chosen cube is waiting in the output slot.
 	for i, entry in ipairs(outputs) do
 		local index = i - 1
 		fs[#fs + 1] = ("item_image_button[%g,%g;1,1;%s;%s%s;]"):format(
@@ -254,6 +255,7 @@ end
 
 -- inventory handling
 
+-- Spends the given number of input cubes and dyes
 local function take_from_inputs(inv, count)
 	for _, listname in ipairs({NODE_LIST, DYE_LIST}) do
 		local stack = inv:get_stack(listname, 1)
@@ -274,9 +276,16 @@ end)
 local function rebuild_formspec(pos)
 	local meta = core.get_meta(pos)
 	local inv = core.get_inventory({type = "node", pos = pos})
-	meta:set_string("formspec", get_paint_machine_fs(pos,
-		build_output_list(inv:get_stack(NODE_LIST, 1),
-			inv:get_stack(DYE_LIST, 1), get_font(meta))))
+
+	-- While a chosen cube is waiting in the output slot the buttons are
+	-- not offered; they come back after the cube is taken
+	local outputs = {}
+	if inv:get_stack(OUTPUT_SLOT, 1):is_empty() then
+		outputs = build_output_list(inv:get_stack(NODE_LIST, 1),
+			inv:get_stack(DYE_LIST, 1), get_font(meta))
+	end
+
+	meta:set_string("formspec", get_paint_machine_fs(pos, outputs))
 end
 
 local function resend_formspec(pos)
@@ -297,8 +306,8 @@ local function resend_formspec(pos)
 	end
 end
 
--- Brings everything derived from the input stacks up to date: the output
--- slot contents, the visual entities and the open formspecs
+-- Brings everything derived from the inventory up to date: the visual
+-- entities and the open formspecs
 local function refresh_paint_machine(pos)
 	local meta = core.get_meta(pos)
 	local inv = core.get_inventory({type = "node", pos = pos})
@@ -306,20 +315,10 @@ local function refresh_paint_machine(pos)
 	local font = get_font(meta)
 	local node_stack = inv:get_stack(NODE_LIST, 1)
 	local dye_stack = inv:get_stack(DYE_LIST, 1)
-	local color, count = paint_params(node_stack, dye_stack)
+	local color = paint_params(node_stack, dye_stack)
 
-	-- Invalidate the painted result if its inputs are gone or have changed
-	local output_stack = inv:get_stack(OUTPUT_SLOT, 1)
-	if not output_stack:is_empty() then
-		local painted = parse_node_item(output_stack:get_name())
-		if not color or not painted
-			or painted.font ~= font or painted.color ~= color then
-			inv:set_stack(OUTPUT_SLOT, 1, ItemStack())
-		elseif output_stack:get_count() > count then
-			output_stack:set_count(count)
-			inv:set_stack(OUTPUT_SLOT, 1, output_stack)
-		end
-	end
+	-- The cubes in the output slot are paid for at the button click, so
+	-- they are a finished product: no later input change invalidates them
 
 	-- The paint fluid filling for the current dye
 	if dye_stack:get_name():match("dye:") then
@@ -330,7 +329,7 @@ local function refresh_paint_machine(pos)
 
 	-- The cube of the painted result while there is one, otherwise the cube
 	-- put into the node input
-	output_stack = inv:get_stack(OUTPUT_SLOT, 1)
+	local output_stack = inv:get_stack(OUTPUT_SLOT, 1)
 	local node_data
 	if not output_stack:is_empty() then
 		node_data = parse_node_item(output_stack:get_name())
@@ -339,8 +338,13 @@ local function refresh_paint_machine(pos)
 	end
 	update_visual(pos, "node_symbol", node_data)
 
-	-- The open formspecs need a rebuild only when the button grid changed
-	local state = font .. "|" .. (color or "")
+	-- The open formspecs need a rebuild when the button grid or the output
+	-- slot changed: a symbol button click fills the output and hides the
+	-- buttons, taking the cube empties the output and brings the buttons
+	-- back, so the form must be re-sent in both cases
+	local state = font .. "|" .. (color or "") .. "|"
+		.. (output_stack:is_empty() and ""
+			or output_stack:get_name() .. output_stack:get_count())
 	if meta:get_string(FS_STATE_META) ~= state then
 		meta:set_string(FS_STATE_META, state)
 		rebuild_formspec(pos)
@@ -348,20 +352,16 @@ local function refresh_paint_machine(pos)
 	end
 end
 
-local function on_inventory_change(pos, action, listname, taken_count)
-	if action == "take" and listname == OUTPUT_SLOT then
-		-- every output cube taken costs one input cube and one dye
-		local inv = core.get_inventory({type = "node", pos = pos})
-		take_from_inputs(inv, taken_count)
-	end
-
-	-- Wait until the engine has applied the change, then update the machine
+-- Wait until the engine has applied an inventory change, then update the
+-- machine
+local function on_inventory_change(pos)
 	core.after(0.01, function()
 		refresh_paint_machine(pos)
 	end)
 end
 
--- Puts the stack of the chosen symbol cube into the output slot
+-- Puts the stack of the chosen symbol cube into the output slot, spending
+-- the input cubes and dyes it was painted from right away
 local function on_symbol_button(pos, player, symbol)
 	local meta = core.get_meta(pos)
 	local font = get_font(meta)
@@ -371,11 +371,16 @@ local function on_symbol_button(pos, player, symbol)
 
 	local inv = core.get_inventory({type = "node", pos = pos})
 
+	-- The output slot is normally empty here: the buttons are not offered
+	-- while it is filled. A leftover stack can only be a lost race against
+	-- another player's click; it was paid for already, so it is simply
+	-- given back to the player
 	local old_stack = inv:get_stack(OUTPUT_SLOT, 1)
 	if not old_stack:is_empty() then
-		-- The replaced cubes leave the machine without being taken from the
-		-- output slot, so they are paid for right away
-		take_from_inputs(inv, old_stack:get_count())
+		local leftover = player:get_inventory():add_item("main", old_stack)
+		if not leftover:is_empty() then
+			core.item_drop(leftover, player, pos)
+		end
 	end
 
 	local color, count = paint_params(
@@ -385,6 +390,9 @@ local function on_symbol_button(pos, player, symbol)
 	if color and count > 0 then
 		new_stack = ItemStack(cube_nodes.node_name(font, symbol, color))
 		new_stack:set_count(count)
+
+		-- every painted cube costs one input cube and one dye, paid at once
+		take_from_inputs(inv, count)
 	end
 	inv:set_stack(OUTPUT_SLOT, 1, new_stack)
 
@@ -392,14 +400,7 @@ local function on_symbol_button(pos, player, symbol)
 		core.sound_play("painting_machine", {pos = pos}, true)
 	end
 
-	if not old_stack:is_empty() then
-		local leftover = player:get_inventory():add_item("main", old_stack)
-		if not leftover:is_empty() then
-			core.item_drop(leftover, player, pos)
-		end
-	end
-
-	-- refreshes the cube visual and the output slot for the changed inputs
+	-- refreshes the input slots, the cube visual and the open formspecs
 	refresh_paint_machine(pos)
 end
 
@@ -505,16 +506,16 @@ core.register_node("cube_nodes:paint_machine", {
 		return count
 	end,
 
-	on_metadata_inventory_put = function(pos, listname)
-		on_inventory_change(pos, "put", listname)
+	on_metadata_inventory_put = function(pos)
+		on_inventory_change(pos)
 	end,
 
-	on_metadata_inventory_move = function(pos, _, _, to_list)
-		on_inventory_change(pos, "move", to_list)
+	on_metadata_inventory_move = function(pos)
+		on_inventory_change(pos)
 	end,
 
-	on_metadata_inventory_take = function(pos, listname, _, stack)
-		on_inventory_change(pos, "take", listname, stack:get_count())
+	on_metadata_inventory_take = function(pos)
+		on_inventory_change(pos)
 	end,
 
 	on_receive_fields = function(pos, _, fields, player)
@@ -584,7 +585,7 @@ core.register_entity("cube_nodes:paint_fill", {
 	end,
 	update_visual = function(self, new_data)
 		self.color = new_data.color or ""
-		self.object:set_properties({textures={"blank.png^[colorize:" .. self.color .. ":200"}})
+		self.object:set_properties({textures={"blank.png^[fill:32x32:0,0:" .. self.color}})
 	end,
 	get_staticdata = function(self)
 		return self.color
