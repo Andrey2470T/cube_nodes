@@ -215,7 +215,7 @@ end
 local VISUALS = {
 	paint_fill = {
 		entity = "cube_nodes:paint_fill",
-		offset = vector.new(0, 1.25, 0),
+		offset = vector.new(0, 1.2, 0),
 		pack = function(data)
 			return data.color
 		end,
@@ -528,9 +528,6 @@ core.register_node("cube_nodes:paint_machine", {
 			return
 		end
 
-		-- The engine submits the current dropdown value together with every
-		-- button click, so the font is applied first and the button is then
-		-- handled below instead of the dropdown swallowing the click
 		local font_changed = false
 		if fields[FONT_DROPDOWN] then
 			local font = fields[FONT_DROPDOWN]:lower()
@@ -541,7 +538,6 @@ core.register_node("cube_nodes:paint_machine", {
 			end
 		end
 
-		-- a symbol button was pressed
 		for field in pairs(fields) do
 			local symbol = field:match("^" .. BUTTON_PREFIX .. "(.+)$")
 			if symbol then
@@ -572,20 +568,42 @@ core.register_craft({
 	},
 })
 
+core.register_on_player_receive_fields(function(player, formname, fields)
+	local pos = core.string_to_pos(formname:match("^nodemeta:(.+)$") or "")
+	if not pos then
+		return
+	end
+
+	local node_name = core.get_node(pos).name
+	if node_name ~= "cube_nodes:paint_machine" then
+		return
+	end
+
+	core.registered_nodes[node_name]
+		.on_receive_fields(pos, formname, fields, player)
+end)
+
+local function six_texs(textures)
+	return {textures, textures, textures, textures, textures, textures}
+end
+
 core.register_entity("cube_nodes:paint_fill", {
-	physical = false,
-	pointable = false,
-	visual = "cube",
-	visual_size = {x=0.7, y=0.4, z=0.7},
-	textures = {"blank.png"},
-	use_texture_alpha = true,
+	initial_properties = {
+		physical = false,
+		pointable = false,
+		visual = "cube",
+		visual_size = {x = 0.81, y = 0.4, z = 0.81},
+		textures = six_texs("paint_fill.png"),
+		use_texture_alpha = true,
+	},
 	on_activate = function(self, staticdata)
-		self:update_visual({color=staticdata})
+		self:update_visual({color = staticdata})
 		return true
 	end,
 	update_visual = function(self, new_data)
 		self.color = new_data.color or ""
-		self.object:set_properties({textures={"blank.png^[fill:32x32:0,0:" .. self.color}})
+		self.object:set_properties({textures =
+			six_texs("paint_fill.png^[multiply:" .. self.color)})
 	end,
 	get_staticdata = function(self)
 		return self.color
@@ -593,12 +611,14 @@ core.register_entity("cube_nodes:paint_fill", {
 });
 
 core.register_entity("cube_nodes:node_symbol", {
-	physical = false,
-	pointable = false,
-	visual = "node",
-	visual_size = {x=0.8, y=0.8, z=0.8},
-	node = {name=cube_nodes.node_name("normal", "empty", "black")},
-	use_texture_alpha = true,
+	initial_properties = {
+		physical = false,
+		pointable = false,
+		visual = "node",
+		visual_size = {x = 0.8, y = 0.8, z = 0.8},
+		node = {name = cube_nodes.node_name("normal", "empty", "black")},
+		use_texture_alpha = true,
+	},
 	on_activate = function(self, staticdata)
 		local data = {}
 		if staticdata ~= "" then
@@ -615,7 +635,7 @@ core.register_entity("cube_nodes:node_symbol", {
 
 		local name = cube_nodes.node_name(self.font, self.symbol, self.color)
 		if core.registered_nodes[name] then
-			self.object:set_properties({node={name=name}})
+			self.object:set_properties({node = {name = name}})
 		end
 	end,
 	get_staticdata = function(self)
