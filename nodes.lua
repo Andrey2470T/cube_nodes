@@ -98,7 +98,7 @@ local function register_cube_node(font, symbol, color)
 	core.register_node(cube_nodes.node_name(font, symbol, color), {
 		description = cube_nodes.name_to_desc(name),
 		tiles = {
-			("cube_nodes_blank.png^(%s.png^[colorize:%s:255)"):format(name, color),
+			("cube_nodes_blank.png^(cube_nodes_%s.png^[colorize:%s:255)"):format(name, color),
 		},
 		paramtype = "light",
 		sunlight_propagates = true,

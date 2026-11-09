@@ -107,7 +107,7 @@ local function get_paint_machine_fs(pos, outputs)
 
 	fs[#fs + 1] = "label[2,6;Node:]" .. fs_list(pos, NODE_LIST, 2, 6.25, 1, 1)
 	fs[#fs + 1] = "label[5,6;Dye:]" .. fs_list(pos, DYE_LIST, 5, 6.25, 1, 1)
-		.. "image[5,6.25;1,1;dye_icon.png]"
+		.. "image[5,6.25;1,1;cube_nodes_dye_icon.png]"
 	fs[#fs + 1] = ("label[7,6;Font:]dropdown[7,6.25;1.5;%s;%s;%d;]")
 		:format(FONT_DROPDOWN, FONT_CHOICES, font_index[font])
 	fs[#fs + 1] = "label[8.75,6;Output:]"
@@ -430,7 +430,7 @@ core.register_node("cube_nodes:paint_machine", {
 	drawtype = "mesh",
 	visual_scale = 0.5,
 	mesh = "painting_machine.obj",
-	tiles = {"painting_machine.png"},
+	tiles = {"cube_nodes_painting_machine.png"},
 	paramtype = "light",
 	paramtype2 = "facedir",
 	use_texture_alpha = "blend",
@@ -602,7 +602,7 @@ core.register_entity("cube_nodes:paint_fill", {
 		pointable = false,
 		visual = "cube",
 		visual_size = {x = 0.81, y = 0.4, z = 0.81},
-		textures = six_texs("paint_fill.png"),
+		textures = six_texs("cube_nodes_paint_fill.png"),
 		use_texture_alpha = true,
 	},
 	on_activate = function(self, staticdata)
@@ -612,7 +612,7 @@ core.register_entity("cube_nodes:paint_fill", {
 	update_visual = function(self, new_data)
 		self.color = new_data.color or ""
 		self.object:set_properties({textures =
-			six_texs("paint_fill.png^[multiply:" .. self.color)})
+			six_texs("cube_nodes_paint_fill.png^[multiply:" .. self.color)})
 	end,
 	get_staticdata = function(self)
 		return self.color
