@@ -18,16 +18,14 @@ local FONT_DROPDOWN = "pm_font_dd"
 local SCROLLBAR = "pm_scrlbar"
 local BUTTON_PREFIX = "pm_btn_"
 
--- Meta key the selected font is stored under.
--- Must not be renamed: machines placed by older mod versions use it.
+-- Nodemeta field names
 local FONT_META = "context_dd_value"
-
--- Meta key the state of the stored formspec is cached under, so that the
--- formspec is rebuilt and re-sent only when its contents really changed
 local FS_STATE_META = "pm_fs_state"
+local SOUND_TIME_META = "pm_snd_time"
 
--- Button grid geometry, in real-coordinate units. A button is 1.0 units in
--- size plus 0.25 units of spacing between buttons, so it takes 1.25 units.
+-- Duration of the "painting_machine.ogg" sound in seconds
+local SOUND_INTERVAL = 3.6
+
 local BUTTON_COLS = 8 -- buttons per row
 local SLOT_STEP = 1.25
 local VISIBLE_ROWS = 4
@@ -360,6 +358,16 @@ local function on_inventory_change(pos)
 	end)
 end
 
+-- Starts the painting sound unless the previous one is still playing
+local function play_paint_sound(pos)
+	local now = core.get_gametime()
+	local meta = core.get_meta(pos)
+	if now - meta:get_int(SOUND_TIME_META) >= SOUND_INTERVAL then
+		meta:set_int(SOUND_TIME_META, now)
+		core.sound_play("painting_machine", {pos = pos}, true)
+	end
+end
+
 -- Puts the stack of the chosen symbol cube into the output slot, spending
 -- the input cubes and dyes it was painted from right away
 local function on_symbol_button(pos, player, symbol)
@@ -397,7 +405,7 @@ local function on_symbol_button(pos, player, symbol)
 	inv:set_stack(OUTPUT_SLOT, 1, new_stack)
 
 	if not new_stack:is_empty() then
-		core.sound_play("painting_machine", {pos = pos}, true)
+		play_paint_sound(pos)
 	end
 
 	-- refreshes the input slots, the cube visual and the open formspecs
@@ -458,7 +466,8 @@ core.register_node("cube_nodes:paint_machine", {
 			if legacy then
 				for _, stack in ipairs(legacy) do
 					if not stack:is_empty() then
-						local leftover = clicker:add_item("main", stack)
+						local leftover = clicker:get_inventory()
+							:add_item("main", stack)
 						if not leftover:is_empty() then
 							core.item_drop(leftover, clicker, pos)
 						end
